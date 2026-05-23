@@ -44,6 +44,10 @@ const upload = multer({ storage: storage });
 // Static Files
 app.use("/uploads", express.static("uploads"));
 
+app.get("/", (req, res) => {
+  res.send("SkillForge API is running successfully!");
+});
+
 
 
 app.post("/api/register", (req, res) => {
