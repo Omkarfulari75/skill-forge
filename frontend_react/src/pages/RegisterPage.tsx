@@ -80,7 +80,7 @@ const RegisterPage = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@example.com"
+                placeholder=""
                 className="w-full px-5 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none text-gray-700 shadow-inner"
               />
             </div>

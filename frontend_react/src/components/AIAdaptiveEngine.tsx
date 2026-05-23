@@ -14,7 +14,20 @@ interface AdaptiveData {
     color: 'red' | 'yellow' | 'green';
   };
   quiz: {
-    mcqs: Array<{ question: string; options: string[]; answer: string }>;
+    mcqs: Array<{ question: string; options: string[]; answer: string; associated_topic?: string }>;
+  };
+  performance_analysis: {
+    strong_topics: string[];
+    weak_topics: string[];
+    suggestions: string;
+  };
+}
+
+interface PostQuizAnalysis {
+  next_lesson: string;
+  next_lesson_links: {
+    youtube: string;
+    reference: string;
   };
   performance_analysis: {
     strong_topics: string[];
@@ -38,6 +51,8 @@ const AIAdaptiveEngine: React.FC<Props> = ({ studentId, courseId, courseTitle, o
   const [currentQuizStep, setCurrentQuizStep] = useState(0);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [quizScore, setQuizScore] = useState<number | null>(null);
+  const [isAnalyzingQuiz, setIsAnalyzingQuiz] = useState(false);
+  const [postQuizAnalysis, setPostQuizAnalysis] = useState<PostQuizAnalysis | null>(null);
 
   useEffect(() => {
     fetchAdaptiveData();
@@ -82,15 +97,28 @@ const AIAdaptiveEngine: React.FC<Props> = ({ studentId, courseId, courseTitle, o
     });
     setQuizScore(score);
     
-    // Explicitly update global level based on score
     try {
+        setIsAnalyzingQuiz(true);
+        // Analyze specific quiz answers for weak topics
+        const analysisResponse = await axios.post('http://localhost:5000/api/analyze-assessment', {
+            student_id: studentId,
+            course_id: courseId,
+            quiz_data: data?.quiz.mcqs,
+            user_answers: userAnswers
+        });
+        setPostQuizAnalysis(analysisResponse.data);
+
+        // Explicitly update global and course level based on score
         await axios.post('http://localhost:5000/api/update-level', {
             student_id: studentId,
+            course_id: courseId,
             score: score
         });
         await handleLevelUpdate(score);
     } catch (err) {
-        console.error("Level update failed", err);
+        console.error("Quiz submission or analysis failed", err);
+    } finally {
+        setIsAnalyzingQuiz(false);
     }
   };
 
@@ -344,30 +372,57 @@ const AIAdaptiveEngine: React.FC<Props> = ({ studentId, courseId, courseTitle, o
           ) : (
             <div className="text-center py-12">
               <div className="w-24 h-24 bg-emerald-50 text-emerald-600 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
-                <Trophy size={48} />
+                {isAnalyzingQuiz ? <Zap size={48} className="animate-pulse" /> : <Trophy size={48} />}
               </div>
-              <h2 className="text-4xl font-black text-gray-900 mb-4">Assessment Complete!</h2>
-              <p className="text-gray-400 font-bold mb-10 text-lg uppercase tracking-widest">Your Score: {quizScore} / 5</p>
+              <h2 className="text-4xl font-black text-gray-900 mb-4">
+                {isAnalyzingQuiz ? 'Analyzing Results...' : 'Assessment Complete!'}
+              </h2>
+              {!isAnalyzingQuiz && (
+                <p className="text-gray-400 font-bold mb-10 text-lg uppercase tracking-widest">Your Score: {quizScore} / 5</p>
+              )}
               
               <div className="max-w-md mx-auto bg-gray-50 p-8 rounded-[2.5rem] mb-12 text-left">
                 <h4 className="font-black text-gray-900 mb-4 flex items-center gap-2">
                    <Zap size={16} className="text-yellow-500" /> AI Feedback & Insight
                 </h4>
-                <div className={`mb-6 p-4 rounded-2xl font-black text-xs uppercase tracking-widest text-center ${
-                    quizScore! <= 2 ? 'bg-red-50 text-red-600' :
-                    quizScore! <= 4 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
-                }`}>
-                    Level: {quizScore! <= 2 ? 'BEGINNER' : quizScore! <= 4 ? 'INTERMEDIATE' : 'ADVANCED'}
-                </div>
-                <p className="text-gray-500 text-sm font-medium leading-relaxed italic">
-                  "Based on your performance, I've adjusted your curriculum difficulty. We'll focus on your weak areas: {data.performance_analysis.weak_topics.join(', ') || 'N/A'} while maintaining your streak in {data.performance_analysis.strong_topics[0] || 'core subjects'}."
-                </p>
+                {isAnalyzingQuiz ? (
+                    <div className="py-4 text-center">
+                        <div className="w-8 h-8 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mx-auto mb-2" />
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Generating targeted learning path</p>
+                    </div>
+                ) : (
+                    <>
+                        <div className={`mb-6 p-4 rounded-2xl font-black text-xs uppercase tracking-widest text-center ${
+                            quizScore! <= 2 ? 'bg-red-50 text-red-600' :
+                            quizScore! <= 4 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
+                        }`}>
+                            Level: {quizScore! <= 2 ? 'BEGINNER' : quizScore! <= 4 ? 'INTERMEDIATE' : 'ADVANCED'}
+                        </div>
+                        <p className="text-gray-500 text-sm font-medium leading-relaxed italic">
+                        "{postQuizAnalysis?.performance_analysis?.suggestions || "Based on your performance, I've adjusted your curriculum difficulty. Keep up the good work!"}"
+                        </p>
+                        
+                        {(postQuizAnalysis?.performance_analysis?.weak_topics?.length || 0) > 0 && (
+                            <div className="mt-6 p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                                <p className="text-xs font-black text-amber-700 uppercase mb-2">Recommended Focus:</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {postQuizAnalysis!.performance_analysis.weak_topics.map(t => (
+                                        <span key={t} className="px-2 py-1 bg-white text-amber-600 rounded-lg text-[10px] font-bold border border-amber-200">
+                                            {t}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button 
+                    disabled={isAnalyzingQuiz}
                     onClick={() => { setShowQuiz(false); setQuizScore(null); setCurrentQuizStep(0); setUserAnswers([]); fetchAdaptiveData(); }}
-                    className="px-8 py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:scale-105 transition-transform"
+                    className="px-8 py-4 bg-gray-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:scale-105 transition-transform disabled:opacity-50"
                 >
                     Return to Dashboard
                 </button>

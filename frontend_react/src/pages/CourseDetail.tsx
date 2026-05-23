@@ -102,7 +102,12 @@ const CourseDetail = () => {
     e.preventDefault();
     try {
       if (editingTopic) {
-        await updateTopic(editingTopic.id, { name: newTopic.name, description: newTopic.description });
+        await updateTopic(editingTopic.id, { 
+          name: newTopic.name, 
+          description: newTopic.description,
+          youtube_link: newTopic.youtube_link,
+          generic_link: newTopic.generic_link 
+        });
         const data = await fetchTopics(editingTopic.subject_id);
         setTopics(prev => ({ ...prev, [editingTopic.subject_id]: data }));
       } else {
@@ -215,7 +220,7 @@ const CourseDetail = () => {
           {subjects.map(subject => (
             <div key={subject.id} className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
               <div 
-                className={`p-6 flex items-center justify-between cursor-pointer transition-colors ${expandedSubject === subject.id ? 'bg-gray-50' : 'hover:bg-gray-50/50'}`}
+                className={`group p-6 flex items-center justify-between cursor-pointer transition-colors ${expandedSubject === subject.id ? 'bg-gray-50' : 'hover:bg-gray-50/50'}`}
                 onClick={() => toggleSubject(subject.id)}
               >
                 <div className="flex items-center gap-4">
@@ -227,7 +232,7 @@ const CourseDetail = () => {
                     <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{(topics[subject.id]?.length || 0)} Topics</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button 
                     onClick={(e) => { e.stopPropagation(); handleEditSubject(subject); }}
                     className="p-2 text-gray-300 hover:text-emerald-500 transition-colors"
@@ -248,7 +253,7 @@ const CourseDetail = () => {
                   {topics[subject.id]?.map(topic => (
                     <div key={topic.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm">
                       <div 
-                        className="p-4 flex items-center justify-between cursor-pointer"
+                        className="group p-4 flex items-center justify-between cursor-pointer"
                         onClick={() => toggleTopic(topic.id)}
                       >
                         <div className="flex items-center gap-3">
@@ -258,13 +263,13 @@ const CourseDetail = () => {
                         <div className="flex items-center gap-4">
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleEditTopic(topic); }}
-                            className="p-1 text-gray-300 hover:text-emerald-500 transition-all"
+                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-300 hover:text-emerald-500 transition-all"
                           >
                             <Edit2 size={14} />
                           </button>
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleDeleteTopic(topic.id, subject.id); }}
-                            className="p-1 text-gray-300 hover:text-red-500 transition-all"
+                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-300 hover:text-red-500 transition-all"
                           >
                             <Trash2 size={14} />
                           </button>

@@ -24,6 +24,7 @@ connection.connect((err) => {
       // Drop tables in correct order to avoid FK constraints
       const dropQueries = [
         "DROP TABLE IF EXISTS student_progress",
+        "DROP TABLE IF EXISTS student_course_levels",
         "DROP TABLE IF EXISTS questions",
         "DROP TABLE IF EXISTS quizzes",
         "DROP TABLE IF EXISTS materials",
@@ -139,6 +140,17 @@ connection.connect((err) => {
         )
       `;
 
+      const createStudentCourseLevels = `
+        CREATE TABLE IF NOT EXISTS student_course_levels (
+          student_id INT NOT NULL,
+          course_id INT NOT NULL,
+          level ENUM('BEGINNER', 'INTERMEDIATE', 'ADVANCED') DEFAULT 'BEGINNER',
+          FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+          FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+          PRIMARY KEY (student_id, course_id)
+        )
+      `;
+
       const createStudentProgress = `
         CREATE TABLE IF NOT EXISTS student_progress (
           id INT AUTO_INCREMENT PRIMARY KEY,
@@ -176,6 +188,7 @@ connection.connect((err) => {
         createMaterials,
         createQuizzes,
         createQuestions,
+        createStudentCourseLevels,
         createStudentProgress
       ];
 

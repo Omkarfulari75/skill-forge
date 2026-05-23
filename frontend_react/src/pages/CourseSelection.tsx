@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchAvailableCourses } from '../api/student';
 import type { Course } from '../api/instructor';

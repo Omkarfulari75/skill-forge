@@ -1,16 +1,16 @@
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, BookOpen, Trophy, Clock, ChevronRight } from 'lucide-react';
+import { LogOut, BookOpen, Trophy, Clock, ChevronRight, PlayCircle, Link as LinkIcon, Folder, Award } from 'lucide-react';
 import AIAdaptiveEngine from '../components/AIAdaptiveEngine';
 import { useState, useEffect } from 'react';
 import { fetchCourseDashboard } from '../api/student';
-import type { Course, Topic } from '../api/instructor';
+import type { Course } from '../api/instructor';
 
 const Dashboard = () => {
   const { user, selectedCourseId, logout } = useAuth();
   const navigate = useNavigate();
   const [showAIEngine, setShowAIEngine] = useState(false);
-  const [courseData, setCourseData] = useState<{ course: Course, topics: Topic[], stats: any } | null>(null);
+  const [courseData, setCourseData] = useState<{ course: Course, subjects: any[], topics: any[], stats: any } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -101,10 +101,10 @@ const Dashboard = () => {
 
           <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
             <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 mb-4">
-              <Clock size={24} />
+              <Award size={24} />
             </div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Learning Hours</p>
-            <p className="text-3xl font-black text-gray-900">24.5</p>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Current Level</p>
+            <p className="text-3xl font-black text-gray-900">{courseData?.stats?.courseLevel || 'BEGINNER'}</p>
           </div>
         </div>
 
@@ -128,33 +128,61 @@ const Dashboard = () => {
             <div className="lg:col-span-2 space-y-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-black text-gray-900 tracking-tight">Curriculum</h2>
-                <span className="text-xs font-black text-gray-400 uppercase tracking-widest">{courseData?.topics.length || 0} Topics Total</span>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest">{courseData?.topics?.length || 0} Topics Total</span>
               </div>
               
-              {courseData?.topics.length === 0 ? (
+              {(!courseData?.subjects || courseData.subjects.length === 0) && (!courseData?.topics || courseData.topics.length === 0) ? (
                 <div className="bg-white p-12 rounded-[2.5rem] border border-dashed border-gray-200 text-center text-gray-400">
-                  <p className="font-bold">No topics added to this course yet.</p>
+                  <p className="font-bold">No curriculum added to this course yet.</p>
                 </div>
               ) : (
-                courseData?.topics.map((topic: any) => (
-                  <div key={topic.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex items-center gap-6 group">
-                    <div className={`w-16 h-16 rounded-2xl flex-shrink-0 flex items-center justify-center ${topic.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-50 text-gray-400'}`}>
-                      <BookOpen size={24} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        {topic.status === 'COMPLETED' ? (
-                          <span className="px-2 py-1 bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase rounded-lg">Completed</span>
-                        ) : (
-                          <span className="px-2 py-1 bg-blue-50 text-blue-600 text-[8px] font-black uppercase rounded-lg">Pending</span>
-                        )}
-                        <span className="text-[10px] font-bold text-gray-400 uppercase">Score: {topic.last_score || 0}%</span>
+                (courseData?.subjects || []).map((subject: any) => {
+                  const subjectTopics = (courseData?.topics || []).filter(t => t.subject_id === subject.id);
+                  return (
+                    <div key={`subject-${subject.id}`} className="mb-8">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Folder className="text-blue-500" size={24} />
+                        <h3 className="text-lg font-black text-gray-800 uppercase tracking-tight">{subject.name}</h3>
                       </div>
-                      <h3 className="font-black text-gray-900 mb-1 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{topic.name}</h3>
+                      <div className="space-y-4 pl-4 border-l-2 border-gray-100 ml-3">
+                        {subjectTopics.length === 0 ? (
+                          <p className="text-gray-400 text-sm font-bold pl-4">No topics in this subject yet.</p>
+                        ) : (
+                          subjectTopics.map((topic: any) => (
+                            <div key={topic.id} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row gap-6 group">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  {topic.status === 'COMPLETED' ? (
+                                    <span className="px-2 py-1 bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase rounded-lg">Completed</span>
+                                  ) : (
+                                    <span className="px-2 py-1 bg-blue-50 text-blue-600 text-[8px] font-black uppercase rounded-lg">Pending</span>
+                                  )}
+                                  <span className="text-[10px] font-bold text-gray-400 uppercase">Score: {topic.last_score || 0}%</span>
+                                </div>
+                                <h4 className="font-black text-gray-900 mb-2 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{topic.name}</h4>
+                                <div className="flex flex-wrap gap-3">
+                                  {topic.youtube_link && (
+                                    <a href={topic.youtube_link} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 px-3 py-1.5 rounded-lg transition-colors">
+                                      <PlayCircle size={14} /> Watch Lesson
+                                    </a>
+                                  )}
+                                  {topic.generic_link && (
+                                    <a href={topic.generic_link} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs font-bold text-indigo-500 hover:text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors">
+                                      <LinkIcon size={14} /> Reference Material
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                              <div className={`w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center self-start sm:self-center ${topic.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-50 text-gray-400'}`}>
+                                <BookOpen size={20} />
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
-                    <ChevronRight className="text-gray-300 group-hover:text-blue-600 transition-colors" />
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 

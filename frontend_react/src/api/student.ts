@@ -6,6 +6,7 @@ export interface StudentProgress {
   progressPercent: number;
   completedTopics: number;
   totalTopics: number;
+  courseLevel?: string;
 }
 
 export const fetchAvailableCourses = async (): Promise<Course[]> => {
